@@ -1,0 +1,371 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  Cloudformation template to create a dedicated VPC to provide connectivity between SageMaker Unified Studio and your AWS Resources this is needed to run the Guidance for a Unified Development Experience for AWS Data, Analytics, and Machine Learning with Amazon SageMaker Unified Studio (SOXXXX).
+  In particular this template creates a VPC, 3 private subnets in 3 different availability zones (to be used with SageMaker Unified Studio), and a public subnet to allow connectivity to internet. 
+  The template also creates a route from each private subnets to a NAT gateway with EIP in the public subnet, and a route in the public subnet to an IGW.
+  This setup enables internet connectivity from SageMaker Unified Studio VPC which allows usage of all AWS services.
+
+Parameters:
+  availabilityZones:
+      Type: String
+      Description: Comma-separated list of AZs in which to create the subnets. There should be 3 AZs.
+      Default: ""
+
+Conditions:
+  codeWhispererEnabledRegion: !Equals [!Sub '${AWS::Region}', 'us-east-1']
+  availabilityZonesProvided: !Not [!Equals [!Ref availabilityZones, '']]
+  useAzIdMapping: !And
+    - !Not [!Condition availabilityZonesProvided]
+    - !Or
+      - !Equals [!Sub '${AWS::Region}', 'eu-west-1']
+      - !Equals [!Sub '${AWS::Region}', 'us-east-1']
+      - !Equals [!Sub '${AWS::Region}', 'us-west-2']
+
+Mappings:
+  AvailabilityZonesId:
+    eu-west-1:
+      AZ1: euw1-az1
+      AZ2: euw1-az2
+      AZ3: euw1-az3
+    us-east-1:
+      AZ1: use1-az1
+      AZ2: use1-az2
+      AZ3: use1-az6
+    us-west-2:
+      AZ1: usw2-az1
+      AZ2: usw2-az2
+      AZ3: usw2-az3
+
+Resources:
+  SageMakerUnifiedStudioVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: CreatedForUseWithSageMakerUnifiedStudio
+          Value: true
+        - Key: Name
+          Value: 'SageMakerUnifiedStudioVPC'
+  
+  SageMakerUnifiedStudioSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for the VPC-endpoints.
+      GroupName: 'sagemaker-unified-studio-vpc-endpoint'
+      SecurityGroupEgress:
+        - Description: Allows outbound HTTPS access to any IPv4 address
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - Description: Allows inbound HTTPS access for traffic from VPC
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 10.0.0.0/16
+      Tags:
+        - Key: CreatedForUseWithSageMakerUnifiedStudio
+          Value: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+
+
+  SageMakerUnifiedStudioPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: "10.0.216.0/21"
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      Tags:
+        - Key: CreatedForUseWithSageMakerUnifiedStudio
+          Value: true
+        - Key: Name
+          Value: 'SageMakerUnifiedStudioPublicSubnet'
+
+  PublicRouteTableIGWRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref SageMakerUnifiedStudioVpcInternetGateway
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref SageMakerUnifiedStudioPublicSubnet
+
+  SageMakerUnifiedStudioPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !If [availabilityZonesProvided, !Select [0, !Split [ ',', !Ref availabilityZones ]], !If [useAzIdMapping, !Ref "AWS::NoValue", !Select [0, !GetAZs '']]]
+      AvailabilityZoneId: !If [useAzIdMapping, !FindInMap [AvailabilityZonesId, !Ref "AWS::Region", AZ1], !Ref "AWS::NoValue"]
+      CidrBlock: "10.0.192.0/21"
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      Tags:
+        - Key: CreatedForUseWithSageMakerUnifiedStudio
+          Value: true
+        - Key: Name
+          Value: 'SageMakerUnifiedStudioPrivateSubnet1'
+
+  SageMakerUnifiedStudioPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !If [availabilityZonesProvided, !Select [1, !Split [ ',', !Ref availabilityZones ]], !If [useAzIdMapping, !Ref "AWS::NoValue", !Select [1, !GetAZs '']]]
+      AvailabilityZoneId: !If [useAzIdMapping, !FindInMap [AvailabilityZonesId, !Ref "AWS::Region", AZ2], !Ref "AWS::NoValue"]
+      CidrBlock: "10.0.200.0/21"
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      Tags:
+        - Key: CreatedForUseWithSageMakerUnifiedStudio
+          Value: true
+        - Key: Name
+          Value: 'SageMakerUnifiedStudioPrivateSubnet2'
+
+  SageMakerUnifiedStudioPrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !If [availabilityZonesProvided, !Select [2, !Split [ ',', !Ref availabilityZones ]], !If [useAzIdMapping, !Ref "AWS::NoValue", !Select [2, !GetAZs '']]]
+      AvailabilityZoneId: !If [useAzIdMapping, !FindInMap [AvailabilityZonesId, !Ref "AWS::Region", AZ3], !Ref "AWS::NoValue"]
+      CidrBlock: "10.0.208.0/21"
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      Tags:
+        - Key: CreatedForUseWithSageMakerUnifiedStudio
+          Value: true
+        - Key: Name
+          Value: 'SageMakerUnifiedStudioPrivateSubnet3'
+
+  SageMakerUnifiedStudioEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  SageMakerUnifiedStudioVpcInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties: {}
+  SageMakerUnifiedStudioVpcInternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref SageMakerUnifiedStudioVpcInternetGateway
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+
+  SageMakerUnifiedStudioPublicSubnetNATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt SageMakerUnifiedStudioEIP.AllocationId
+      SubnetId: !Ref SageMakerUnifiedStudioPublicSubnet
+
+  SageMakerUnifiedStudioRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref SageMakerUnifiedStudioRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref SageMakerUnifiedStudioPublicSubnetNATGateway
+
+  PrivateSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref SageMakerUnifiedStudioRouteTable
+      SubnetId: !Ref SageMakerUnifiedStudioPrivateSubnet1
+
+  PrivateSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref SageMakerUnifiedStudioRouteTable
+      SubnetId: !Ref SageMakerUnifiedStudioPrivateSubnet2
+
+  PrivateSubnetRouteTableAssociation3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref SageMakerUnifiedStudioRouteTable
+      SubnetId: !Ref SageMakerUnifiedStudioPrivateSubnet3
+
+  SageMakerUnifiedStudioGlueVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.glue'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+  
+  SageMakerUnifiedStudioCodeCommitVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.codecommit'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+  
+  SageMakerUnifiedStudioGitCodeCommitVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.git-codecommit'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+  
+  SageMakerUnifiedStudioStsVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sts'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+  
+  SageMakerUnifiedStudioS3VpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcEndpointType: Gateway
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      RouteTableIds:
+        - !Ref SageMakerUnifiedStudioRouteTable
+  
+  SageMakerUnifiedStudioSageMakerApiVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.api'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+  
+  SageMakerUnifiedStudioSageMakerRuntimeVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.runtime'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+  
+  SageMakerUnifiedStudioCodeConnectionVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.codeconnections.api'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+  
+  SageMakerUnifiedStudioCodeStarVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.codestar-connections.api'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+  
+  SageMakerUnifiedStudioRedshiftServerlessVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.redshift-serverless'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+  
+  SageMakerUnifiedStudioCodeWhispererVpcEndpoint:
+    Condition: codeWhispererEnabledRegion
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.codewhisperer'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+
+  SageMakerUnifiedStudioDataZoneVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.datazone'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+  
+  SageMakerUnifiedStudioBedrockVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.bedrock'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref SageMakerUnifiedStudioVpc
+      SecurityGroupIds:
+        - !Ref SageMakerUnifiedStudioSecurityGroup
+      SubnetIds:
+        - !Ref SageMakerUnifiedStudioPrivateSubnet1
+        - !Ref SageMakerUnifiedStudioPrivateSubnet2
+        - !Ref SageMakerUnifiedStudioPrivateSubnet3
+
