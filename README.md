@@ -217,11 +217,11 @@ July will use the data prepared and loaded into Data Warehouse (Redshift) to tra
 1. [In JupyterLab] Create a folder named `ml-engineer` under `source/script` folder.
 1. [In JupyterLab] Upload the scripts under [source/script/ml-engineer/](source/script/ml-engineer/) to the scripts folder created on step.
 1. [In JupyterLab] Execute the script cell by cell to load data from Redshift to a DataFrame and train a ML model using Amazon SageMaker AutoML APIs.
-1. [In JupyterLab] Amazon SageMaker Autopilot is used to train the model and generate predictions
-1. [In JupyterLab] Process starts with customers getting data from Redshift and using for Model training
-1. [In JupyterLab] Predictions can be generated in two ways: - Batch processing - Real-time endpoint
-1. [In JupyterLab] During training: - Multiple time series models run concurrently - Models are combined into a single ensembled model - Ensemble blending minimizes forecast error 
-1. [In JupyterLab] Customers receive: - Metadata  - Ensemble model - All underlying candidate models
+1. [In JupyterLab] Amazon SageMaker Autopilot is used to train the model and generate predictions.
+1. [In JupyterLab] Process starts with customers getting data from Redshift and using for Model training.
+1. [In JupyterLab] Predictions can be generated in two ways: - Batch processing - Real-time Endpoint.
+1. [In JupyterLab] During training: - Multiple time series models run concurrently - Models are combined into a single ensembled model - Ensemble blending minimizes forecast error.
+1. [In JupyterLab] Customers receive: - Metadata  - Ensemble model - All underlying candidate models.
 
 
 
