@@ -24,6 +24,7 @@ Resources:
       Tags:
         - Key: CreatedForUseWithMaxDome
           Value: true
+
   MaxDomeManageAccessPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -39,6 +40,30 @@ Resources:
             Action:
               - secretsmanager:GetSecretValue
             Resource: '*'
+          - Sid: GlueCrawlerPermissions
+            Effect: Allow
+            Action:
+              - glue:ListCrawls
+            Resource: 'arn:aws:glue:*:*:crawler/*'
+            Condition:
+              StringEquals:
+                aws:ResourceAccount: '${aws:PrincipalAccount}'
+          - Sid: GlueGetTagsPermissions
+            Effect: Allow
+            Action:
+              - glue:GetTags
+            Resource: 
+              - 'arn:aws:glue:*:*:catalog/*'
+              - 'arn:aws:glue:*:*:database/*'
+            Condition:
+              StringEquals:
+                aws:ResourceAccount: '${aws:PrincipalAccount}'
+          - Sid: LakeFormationGetDataAccessPermissions
+            Effect: Allow
+            Action:
+              - lakeformation:GetDataAccess
+            Resource: '*'
+
   MaxDomeDomainExecutionServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -57,6 +82,7 @@ Resources:
       Tags:
         - Key: CreatedForUseWithMaxDome
           Value: true
+
   MaxDomeDomainExecutionServicePolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -86,6 +112,7 @@ Resources:
               StringLike:
                 kms:viaService: 'ssm.*.amazonaws.com'
                 kms:EncryptionContext:PARAMETER_ARN: 'arn:aws:ssm:*:*:parameter/amazon/datazone/profiles*'
+
   MaxDomeProvisioningRole:
     Type: AWS::IAM::Role
     Properties:
@@ -192,7 +219,9 @@ Resources:
             Action:
               - codecommit:CreateRepository
               - codecommit:TagResource
-            Resource: arn:aws:codecommit:*:*:datazone*
+            Resource:
+              - arn:aws:codecommit:*:*:sagemaker*
+              - arn:aws:codecommit:*:*:datazone*
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -206,7 +235,9 @@ Resources:
           - Sid: CodeCommitDeletion
             Effect: Allow
             Action: codecommit:DeleteRepository
-            Resource: arn:aws:codecommit:*:*:datazone*
+            Resource:
+              - arn:aws:codecommit:*:*:sagemaker*
+              - arn:aws:codecommit:*:*:datazone*
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -220,7 +251,9 @@ Resources:
               - codecommit:CreateCommit
               - codecommit:GetRepository
               - codecommit:GetFile
-            Resource: arn:aws:codecommit:*:*:datazone*
+            Resource:
+              - arn:aws:codecommit:*:*:sagemaker*
+              - arn:aws:codecommit:*:*:datazone*
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
@@ -234,6 +267,7 @@ Resources:
             Action:
               - iam:GetRole
             Resource:
+              - arn:aws:iam::*:role/sagemaker*
               - arn:aws:iam::*:role/datazone*
               - arn:aws:iam::*:role/AmazonBedrockExecution*
               - arn:aws:iam::*:role/BedrockStudio*
@@ -252,12 +286,13 @@ Resources:
               - iam:AttachRolePolicy
               - iam:PutRolePolicy
             Resource:
+              - arn:aws:iam::*:role/sagemaker*
               - arn:aws:iam::*:role/datazone*
               - arn:aws:iam::*:role/AmazonBedrockExecution*
               - arn:aws:iam::*:role/BedrockStudio*
               - arn:aws:iam::*:role/AmazonBedrockConsumptionRole*
               - arn:aws:iam::*:role/AmazonBedrockEvaluation*
-              - arn:aws:iam::*:role/SageMakerUnifiedStudioQueryExecutionRole*
+              - arn:aws:iam::*:role/SageMakerStudioQueryExecutionRole
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -265,6 +300,7 @@ Resources:
                 iam:PermissionsBoundary:
                   - !Ref MaxDomePermissionBoundary
                   - !Ref BedrockStudioPermissionsBoundary
+                  - arn:aws:iam::aws:policy/SageMakerStudioProjectUserRolePermissionsBoundary
               'Null':
                 aws:ResourceTag/AmazonDataZoneProject: 'false'
           - Sid: IAMRoleAndPolicyManagementFromDataZone
@@ -273,24 +309,40 @@ Resources:
               - iam:DeleteRolePolicy
               - iam:PutRolePolicy
             Resource:
+              - arn:aws:iam::*:role/sagemaker*
               - arn:aws:iam::*:role/datazone*
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
-                iam:PermissionsBoundary: !Ref MaxDomePermissionBoundary
+                iam:PermissionsBoundary:
+                  - !Ref MaxDomePermissionBoundary
+                  - arn:aws:iam::aws:policy/SageMakerStudioProjectUserRolePermissionsBoundary
               'Null':
                 aws:ResourceTag/AmazonDataZoneProject: 'false'
+
+  MaxDomeProvisioningPolicy2:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles:
+        - !Ref MaxDomeProvisioningRole
+      ManagedPolicyName: MaxDomeProvisioningPolicy2
+      Path: '/'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
           - Sid: IAMRoleTagging
             Effect: Allow
             Action: iam:TagRole
             Resource:
-              - arn:aws:iam::*:role/datazone_usr_role_*
-              - arn:aws:iam::*:role/datazone-partner-apps-*
-              - arn:aws:iam::*:role/datazone_redshift_serverless_admin_role_*
+              - arn:aws:iam::*:role/sagemaker_usr_role_*
+              - arn:aws:iam::*:role/datazone*
+              - arn:aws:iam::*:role/sagemaker-partner-apps-*
+              - arn:aws:iam::*:role/sagemaker_redshift_serverless_admin_role_*
               - arn:aws:iam::*:role/AmazonBedrockExecution*
               - arn:aws:iam::*:role/BedrockStudio*
               - arn:aws:iam::*:role/AmazonBedrockConsumptionRole*
               - arn:aws:iam::*:role/AmazonBedrockEvaluation*
+              - arn:aws:iam::*:role/SageMakerStudioQueryExecutionRole
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -312,11 +364,13 @@ Resources:
                   - LogGroupName
                   - RoleName
                   - vpcArn
+                  - CreatedForUseWithSageMakerStudio
           - Sid: IAMRoleTaggingForRedshift
             Effect: Allow
             Action: iam:TagRole
             Resource:
-              - arn:aws:iam::*:role/datazone_usr_role_*
+              - arn:aws:iam::*:role/sagemaker_usr_role_*
+              - arn:aws:iam::*:role/datazone*
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
@@ -326,23 +380,13 @@ Resources:
               ForAllValues:StringLike:
                 aws:TagKeys:
                   - RedshiftDb*
-
-  MaxDomeProvisioningPolicy2:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Roles:
-        - !Ref MaxDomeProvisioningRole
-      ManagedPolicyName: MaxDomeProvisioningPolicy2
-      Path: '/'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
           - Sid: IAMRoleTaggingForEmr
             Effect: Allow
             Action: iam:TagRole
             Resource:
-              - arn:aws:iam::*:role/datazone_emr_service_role_*
-              - arn:aws:iam::*:role/datazone_emr_ec2_instance_role_*
+              - arn:aws:iam::*:role/sagemaker_emr_service_role_*
+              - arn:aws:iam::*:role/sagemaker_emr_ec2_instance_role_*
+              - arn:aws:iam::*:role/datazone*
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -363,6 +407,7 @@ Resources:
               - iam:GetRolePolicy
               - iam:ListAttachedRolePolicies
             Resource:
+              - arn:aws:iam::*:role/sagemaker*
               - arn:aws:iam::*:role/datazone*
               - arn:aws:iam::*:role/AmazonBedrockExecution*
               - arn:aws:iam::*:role/BedrockStudio*
@@ -380,7 +425,8 @@ Resources:
               - iam:GetRole
               - iam:UpdateAssumeRolePolicy
             Resource:
-              - arn:aws:iam::*:role/datazone_usr_role_*
+              - arn:aws:iam::*:role/sagemaker_usr_role_*
+              - arn:aws:iam::*:role/datazone*
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
@@ -392,11 +438,14 @@ Resources:
               - iam:AttachRolePolicy
               - iam:DetachRolePolicy
             Resource:
+              - arn:aws:iam::*:role/sagemaker*
               - arn:aws:iam::*:role/datazone*
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
-                iam:PermissionsBoundary: !Ref MaxDomePermissionBoundary
+                iam:PermissionsBoundary:
+                  - !Ref MaxDomePermissionBoundary
+                  - arn:aws:iam::aws:policy/SageMakerStudioProjectUserRolePermissionsBoundary
           - Sid: IAMPolicyManagementFromService
             Effect: Allow
             Action:
@@ -410,7 +459,10 @@ Resources:
               - iam:DeletePolicyVersion
             Resource: 
               - arn:aws:iam::*:policy/datazone*
+              - arn:aws:iam::*:policy/maxdome*
+              - arn:aws:iam::*:policy/sagemaker*
               - arn:aws:iam::*:policy/connector*
+              - arn:aws:iam::*:policy/SageMakerStudioQueryExecutionRolePolicy
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
@@ -433,7 +485,9 @@ Resources:
               - iam:AddRoleToInstanceProfile
               - iam:RemoveRoleFromInstanceProfile
               - iam:DeleteInstanceProfile
-            Resource: arn:aws:iam::*:instance-profile/datazone_emr_ec2_instance_profile_*
+            Resource:
+              - arn:aws:iam::*:instance-profile/sagemaker_emr_ec2_instance_profile_*
+              - arn:aws:iam::*:instance-profile/datazone*
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -442,7 +496,8 @@ Resources:
             Effect: Allow
             Action: iam:PassRole
             Resource:
-              - arn:aws:iam::*:role/datazone_usr_role_*
+              - arn:aws:iam::*:role/sagemaker_usr_role_*
+              - arn:aws:iam::*:role/datazone*
             Condition:
               StringEquals:
                 aws:CalledViaFirst:
@@ -466,19 +521,32 @@ Resources:
             Effect: Allow
             Action: iam:PassRole
             Resource:
-              - arn:aws:iam::*:role/datazone_usr_role_*
+              - arn:aws:iam::*:role/sagemaker_usr_role_*
+              - arn:aws:iam::*:role/datazone*
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
                 iam:PassedToService:
                   - sagemaker.amazonaws.com
                   - redshift-serverless.amazonaws.com
+
+  MaxDomeProvisioningPolicy3:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles:
+        - !Ref MaxDomeProvisioningRole
+      ManagedPolicyName: MaxDomeProvisioningPolicy3
+      Path: '/'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
           - Sid: IamPassRoleForGlueCatalog
             Effect: Allow
             Action: iam:PassRole
             Resource:
               - arn:aws:iam::*:role/datazone_usr_role_*
-              - arn:aws:iam::*:role/SageMakerUnifiedStudioQueryExecutionRole
+              - arn:aws:iam::*:role/SageMakerStudioQueryExecutionRole
+              - arn:aws:iam::*:role/sagemaker_usr_role_*
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
@@ -492,7 +560,8 @@ Resources:
             Effect: Allow
             Action: iam:PassRole
             Resource:
-              - arn:aws:iam::*:role/datazone_emr_service_role_*
+              - arn:aws:iam::*:role/sagemaker_emr_service_role_*
+              - arn:aws:iam::*:role/datazone*
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -503,7 +572,8 @@ Resources:
             Effect: Allow
             Action: iam:PassRole
             Resource:
-              - arn:aws:iam::*:role/datazone_emr_ec2_instance_role_*
+              - arn:aws:iam::*:role/sagemaker_emr_ec2_instance_role_*
+              - arn:aws:iam::*:role/datazone*
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -521,17 +591,6 @@ Resources:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
                 aws:ResourceAccount: ${aws:PrincipalAccount}
                 iam:PassedToService: bedrock.amazonaws.com
-
-  MaxDomeProvisioningPolicy3:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Roles:
-        - !Ref MaxDomeProvisioningRole
-      ManagedPolicyName: MaxDomeProvisioningPolicy3
-      Path: '/'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
           - Sid: IamPassRoleToLambda
             Effect: Allow
             Action: iam:PassRole
@@ -610,7 +669,8 @@ Resources:
             Action: glue:GetConnection
             Resource:
               - arn:aws:glue:*:*:catalog
-              - arn:aws:glue:*:*:connection/datazone-glue-network-connection-*
+              - arn:aws:glue:*:*:connection/sagemaker-glue-network-connection-*
+              - arn:aws:glue:*:*:connection/datazone*
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
@@ -620,7 +680,8 @@ Resources:
               - glue:CreateConnection
               - glue:DeleteConnection
             Resource:
-              - arn:aws:glue:*:*:connection/datazone-glue-network-connection-*
+              - arn:aws:glue:*:*:connection/sagemaker-glue-network-connection-*
+              - arn:aws:glue:*:*:connection/datazone*
               - arn:aws:glue:*:*:catalog
             Condition:
               StringEquals:
@@ -690,6 +751,17 @@ Resources:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
               'Null':
                 aws:ResourceTag/AmazonDataZoneProject: 'false'
+
+  MaxDomeProvisioningPolicy4:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles:
+        - !Ref MaxDomeProvisioningRole
+      ManagedPolicyName: MaxDomeProvisioningPolicy4
+      Path: '/'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
           - Sid: FederatedDataConnectionGlueManageConnectionOnCatalog
             Effect: Allow
             Action:
@@ -744,17 +816,6 @@ Resources:
                 aws:CalledViaLast: cloudformation.amazonaws.com
               'Null':
                 aws:ResourceTag/AmazonDataZoneProject: 'false'
-
-  MaxDomeProvisioningPolicy4:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Roles:
-        - !Ref MaxDomeProvisioningRole
-      ManagedPolicyName: MaxDomeProvisioningPolicy4
-      Path: '/'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
           - Sid: FederatedDBAthenaGetFunctionLambdaPermission
             Effect: Allow
             Action:
@@ -837,7 +898,8 @@ Resources:
             Action: iam:PassRole
             Resource:
               - arn:aws:iam::*:role/ConnectorManageAccessRole
-              - arn:aws:iam::*:role/datazone_usr_role_*
+              - arn:aws:iam::*:role/sagemaker_usr_role_*
+              - arn:aws:iam::*:role/datazone*
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
@@ -928,6 +990,17 @@ Resources:
               ForAllValues:StringLike:
                 aws:TagKeys:
                   - AmazonDataZone*
+
+  MaxDomeProvisioningPolicy5:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles:
+        - !Ref MaxDomeProvisioningRole
+      ManagedPolicyName: MaxDomeProvisioningPolicy5
+      Path: '/'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
           - Sid: SecurityGroupCreation
             Effect: Allow
             Action:
@@ -975,17 +1048,6 @@ Resources:
             Condition:
               'Null':
                 aws:ResourceTag/AmazonDataZoneProject: 'false'
-
-  MaxDomeProvisioningPolicy5:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Roles:
-        - !Ref MaxDomeProvisioningRole
-      ManagedPolicyName: MaxDomeProvisioningPolicy5
-      Path: '/'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
             Effect: Allow
             Action: ec2:CreateTags
             Resource:
@@ -1025,6 +1087,7 @@ Resources:
               - logs:CreateLogGroup
               - logs:TagResource
             Resource:
+              - arn:aws:logs:*:*:log-group:sagemaker-*
               - arn:aws:logs:*:*:log-group:datazone-*
               - arn:aws:logs:*:*:log-group:/aws/lambda/br-studio-*
               - arn:aws:logs:*:*:log-group:/aws/lambda/amazon-bedrock-ide-*
@@ -1043,6 +1106,7 @@ Resources:
             Effect: Allow
             Action: logs:PutRetentionPolicy
             Resource:
+              - arn:aws:logs:*:*:log-group:sagemaker-*
               - arn:aws:logs:*:*:log-group:datazone-*
               - arn:aws:logs:*:*:log-group:/aws/lambda/br-studio-*
               - arn:aws:logs:*:*:log-group:/aws/lambda/amazon-bedrock-ide-*
@@ -1062,6 +1126,7 @@ Resources:
               - logs:DisassociateKmsKey
               - logs:ListTagsForResource
             Resource:
+              - arn:aws:logs:*:*:log-group:sagemaker-*
               - arn:aws:logs:*:*:log-group:datazone-*
               - arn:aws:logs:*:*:log-group:/aws/lambda/br-studio-*
               - arn:aws:logs:*:*:log-group:/aws/lambda/amazon-bedrock-ide-*
@@ -1129,12 +1194,24 @@ Resources:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
                 aws:ResourceAccount: ${aws:PrincipalAccount}
+
+  MaxDomeProvisioningPolicy6:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles:
+        - !Ref MaxDomeProvisioningRole
+      ManagedPolicyName: MaxDomeProvisioningPolicy6
+      Path: '/'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
           - Sid: AllowSecretManagement
             Effect: Allow
             Action:
               - secretsmanager:CreateSecret
               - secretsmanager:DeleteSecret
               - secretsmanager:UpdateSecret
+              - secretsmanager:DescribeSecret
             Resource: '*'
             Condition:
               'Null':
@@ -1180,17 +1257,6 @@ Resources:
               - ec2:DescribeAccountAttributes
               - ec2:DescribeAvailabilityZones
             Resource: '*'
-
-  MaxDomeProvisioningPolicy6:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Roles:
-        - !Ref MaxDomeProvisioningRole
-      ManagedPolicyName: MaxDomeProvisioningPolicy6
-      Path: '/'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
           - Sid: RedshiftServerlessCreateDatabaseRole
             Effect: Allow
             Action:
@@ -1334,6 +1400,17 @@ Resources:
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
+
+  MaxDomeProvisioningPolicy7:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles:
+        - !Ref MaxDomeProvisioningRole
+      ManagedPolicyName: MaxDomeProvisioningPolicy7
+      Path: '/'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
           - Sid: SageMakerAppDeletion
             Effect: Allow
             Action: sagemaker:DeleteApp
@@ -1343,6 +1420,8 @@ Resources:
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
+              'Null':
+                aws:ResourceTag/AmazonDataZoneProject: 'false'
           - Sid: SageMakerSpaceDeletion
             Effect: Allow
             Action: sagemaker:DeleteSpace
@@ -1350,6 +1429,8 @@ Resources:
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
+              'Null':
+                aws:ResourceTag/AmazonDataZoneProject: 'false'
           - Sid: SageMakerUserProfileDeletion
             Effect: Allow
             Action: sagemaker:DeleteUserProfile
@@ -1357,6 +1438,8 @@ Resources:
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
+              'Null':
+                aws:ResourceTag/AmazonDataZoneProject: 'false'
           - Sid: EMRServerlessApplicationCreationAndTagging
             Effect: Allow
             Action:
@@ -1387,17 +1470,6 @@ Resources:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
               'Null':
                 aws:ResourceTag/AmazonDataZoneProject: 'false'
-
-  MaxDomeProvisioningPolicy7:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Roles:
-        - !Ref MaxDomeProvisioningRole
-      ManagedPolicyName: MaxDomeProvisioningPolicy7
-      Path: '/'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
           - Sid: CreateNetworkInterfaceForEMRServerless
             Effect: Allow
             Action: ec2:CreateNetworkInterface
@@ -1514,6 +1586,17 @@ Resources:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
                 aws:ResourceAccount: ${aws:PrincipalAccount}
+
+  MaxDomeProvisioningPolicy8:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles:
+        - !Ref MaxDomeProvisioningRole
+      ManagedPolicyName: MaxDomeProvisioningPolicy8
+      Path: '/'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
           - Sid: ManageBedrockResources
             Effect: Allow
             Action:
@@ -1598,17 +1681,6 @@ Resources:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
               'Null':
                 aws:ResourceTag/AmazonDataZoneProject: 'false'
-
-  MaxDomeProvisioningPolicy8:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Roles:
-        - !Ref MaxDomeProvisioningRole
-      ManagedPolicyName: MaxDomeProvisioningPolicy8
-      Path: '/'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
           - Sid: CreateFunctionPermissionsForBedrockApp
             Effect: Allow
             Action:
@@ -1732,29 +1804,14 @@ Resources:
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
-          - Sid: IamRoleProvisioningRolePermissionsForSageMakerUnifiedStudioQueryExecutionRole
+          - Sid: GetRolePermissionsForSageMakerStudioQueryExecutionRole
             Action:
               - iam:GetRole
-              - iam:CreateRole
-              - iam:TagRole
-              - iam:DetachRolePolicy
-              - iam:DeleteRolePolicy
-              - iam:AttachRolePolicy
-              - iam:PutRolePolicy
-            Resource: arn:aws:iam::*:role/SageMakerUnifiedStudioQueryExecutionRole
+            Resource: arn:aws:iam::*:role/SageMakerStudioQueryExecutionRole
             Effect: Allow
-          - Sid: IamRoleProvisioningRolePermissionsForSageMakerUnifiedStudioQueryExecutionRolePolicy
-            Action:
-              - iam:CreatePolicy
-              - iam:DeletePolicy
-              - iam:ListPolicies
-              - iam:GetPolicy
-              - iam:GetPolicyVersion
-              - iam:CreatePolicyVersion
-              - iam:ListPolicyVersions
-              - iam:DeletePolicyVersion
-            Effect: Allow
-            Resource: arn:aws:iam::*:policy/SageMakerUnifiedStudioQueryExecutionRolePolicy
+            Condition:
+              StringEquals:
+                aws:ResourceAccount: ${aws:PrincipalAccount}
 
   MaxDomeSageMakerNonProdDomainPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -1777,6 +1834,7 @@ Resources:
             Resource:
               - arn:aws:iam::*:role/maxdome_sagemaker_nonprod_domain_lambda_role_*
               - arn:aws:iam::*:role/datazone_sagemaker_nonprod_domain_lambda_role_*
+              - arn:aws:iam::*:role/sagemaker_nonprod_domain_lambda_role_*
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -1789,6 +1847,7 @@ Resources:
             Resource:
               - arn:aws:iam::*:role/maxdome_sagemaker_nonprod_domain_lambda_role_*
               - arn:aws:iam::*:role/datazone_sagemaker_nonprod_domain_lambda_role_*
+              - arn:aws:iam::*:role/sagemaker_nonprod_domain_lambda_role_*
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -1828,6 +1887,7 @@ Resources:
             Resource:
             - arn:aws:iam::*:role/maxdome_sagemaker_nonprod_domain_lambda_role*
             - arn:aws:iam::*:role/datazone_sagemaker_nonprod_domain_lambda_role_*
+            - arn:aws:iam::*:role/sagemaker_nonprod_domain_lambda_role_*
             Condition:
               StringEquals:
                 aws:CalledViaFirst: cloudformation.amazonaws.com
@@ -2096,9 +2156,9 @@ Resources:
                 - arn:*:sagemaker:*:*:model-package/*"
               Condition:
                 'Null':
-                  aws:ResourceTag/DataZoneEnvironmentProjectId: 'false'
+                  aws:ResourceTag/AmazonDataZoneProject: 'false'
                 StringNotEquals:
-                  aws:ResourceTag/DataZoneEnvironmentProjectId: ${aws:PrincipalTag/DataZoneEnvironmentProjectId}
+                  aws:ResourceTag/AmazonDataZoneProject: ${aws:PrincipalTag/AmazonDataZoneProject}
             - Sid: PermissionsWithoutRestrictions
               Action:
                 - q:StartConversation
@@ -2270,6 +2330,7 @@ Resources:
                 - elasticmapreduce:Get*
                 - sagemaker-mlflow:*
                 - sagemaker:*MlflowTrackingServer*
+                - lambda:InvokeFunction
               Effect: Allow
               Resource: '*'
               Condition:
@@ -2315,6 +2376,7 @@ Resources:
               Condition:
                 Bool:
                   aws:ViaAWSService: true
+
   BedrockStudioPermissionsBoundary:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -2457,6 +2519,7 @@ Resources:
                   - s3.*.amazonaws.com
                   - bedrock.*.amazonaws.com
                   - secretsmanager.*.amazonaws.com
+
   MaxDomeBedrockModelManagementRole:
     Type: AWS::IAM::Role
     Properties:
@@ -2476,6 +2539,7 @@ Resources:
       Tags:
         - Key: CreatedForUseWithMaxDome
           Value: true
+
   MaxDomeBedrockModelManagementPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -2523,6 +2587,7 @@ Resources:
             Condition:
               StringEquals:
                 aws:ResourceAccount: ${aws:PrincipalAccount}
+
   MaxDomeBedrockModelConsumptionRoleOneForAll:
     Type: AWS::IAM::Role
     Properties:

@@ -13,9 +13,8 @@
 1. [Next Steps](#next-steps)
 1. [Cleanup](#cleanup)
 1. [FAQ, known issues, additional considerations, and limitations](#faq-known-issues-additional-considerations-and-limitations-optional)
-1. [Revisions](#revisions-optional)
-1. [Notices](#notices-optional)
-1. [Authors](#authors-optional)
+1. [Notices](#notices)
+1. [Authors](#authors)
 
 ## Overview
 
@@ -112,7 +111,6 @@ Deploying the guidance in other regions may lead to errors or inconsistent behav
 
 These are the deployment steps for this guidance. As SageMaker Unified Studio doesn't have yet public APIs most of the configuration needs to be in the console, refer to [administrator section for more details.](#administrator)
 
-1. Clone the repo using command ```git clone guidance-for-a-unified-development-experience-for-aws-data-analytics-and-machine-learning```
 1. Deploy the [CloudFormation template you can find on under deployment folder of this guidance.](deployment/sagemaker_us_guidance_network_setup.yaml). Remember to deploy only using CloudFormation in any of the [supported regions](#supported-regions) mentioned above. You can leave the `availabilityZones` parameter empty (default) or choose the AZs across which you want the VPC resources to span across.
 1. Manually execute the steps you can find under [administrator section.](#administrator)
 1. Manually execute the steps you can find under [Data Engineer section.](#data-engineer)
@@ -143,17 +141,17 @@ This user will be responsible to perform the following configuration steps:
 1. Deploy the cloudformation `sagemaker_us_guidance_network_setup` template under [deployment folder](deployment/sagemaker_us_guidance_network_setup.yaml) of this guidance, this template creates the necessary VPC resources (subnets, Internet Gateways, routing tables, etc...) that allow SageMaker Unified Studio to operate with AWS services and resources.
 1. [Enable IAM Identity Center](https://us-east-1.console.aws.amazon.com/singlesignon/home?region=us-east-1) in the region you want to use for SageMaker Unified Studio (this guidance will use us-east-1 as example). If you already have IAM IC configured you can skip this step.
 1. Add users (and groups if needed) that will be accessing SageMaker Unified Studio portal experience
-1. Access to the [DataZone console](https://us-east-1.console.aws.amazon.com/datazone/home?region=us-east-1#/createv2) and create a domain. If you have enabled IAM Identity Center in the previous step you will be able to use `Quick Setup` option with simplifies configuration.
+1. Access to the [DataZone console](https://us-east-1.awsc-integ.aws.amazon.com/datazone/home?region=us-east-1#/createv2) and create a domain. If you have enabled IAM Identity Center in the previous step you will be able to use `Quick Setup` option with simplifies configuration.
 1. Expand the `Quick setup details` on the bottom of the screen and select the following IAM roles for each of the configuration options, these should be already selected for you, note that role names _might be slightly different_ from the ones listed below:
 
 |Section|Configuration option|IAM Role to Select|
 |--------------------|--------------------|------------------|
-|Domain resources|Domain execution role |SagemakerUSDomainExecutionRole|
-|Domain resources|Domain Service role|SagemakerUSDomainExecutionRole|
-|Data analytics and machine learning resources|Manage access role|SagemakerUSManageAccessRole|
-|Data analytics and machine learning resources|Provisioning role|SagemakerUSProvisioningRole|
-|Generative AI resources|Model provisioning role|SagemakerUSBedrockModelManagementRole|
-|Generative AI resources|Model consumption role|SagemakerUSBedrockModelConsumptionRoleOneForAll|
+|Domain resources|Domain execution role |MaxDomeDomainExecutionRole|
+|Domain resources|Domain Service role|MaxDomeDomainExecutionRole|
+|Data analytics and machine learning resources|Manage access role|MaxDomeManageAccessRole|
+|Data analytics and machine learning resources|Provisioning role|MaxDomeProvisioningRole|
+|Generative AI resources|Model provisioning role|MaxDomeBedrockModelManagementRole|
+|Generative AI resources|Model consumption role|MaxDomeBedrockModelConsumptionRoleOneForAll|
 
 6. (Optional) Only if you had any problems filling the roles on the earlier step you can deploy in CloudFormation the template [optional_sagemaker_us_guidance_IAM_roles_setup](deployment/optional_sagemaker_us_guidance_IAM_roles_setup.yaml) under the deployment folder of this guidance and retry the step, the all the roles as outlined in the table above should be present now.
 6. On `Virtual private cloud (VPC)` section select **SageMakerUnifiedStudioVPC**, this is the VPC we have deployed with CloudFormation on [the deployment steps](#deployment-steps). When selecting the subnets just select the **private subnets** the aforementioned VPC has across your AZ's.
@@ -193,10 +191,9 @@ At high level the data engineer needs to transform this data files to make it fi
 1. [In web Browser] Access SageMaker Unified Studio using the portal URL that was facilitated by the Administrator.
 1. [In SageMaker Unified Studio portal] Choose the Sales Forecasting Project that the Administrator created for him.
 1. [In SageMaker Unified Studio portal] On top level menu bar choose Build -> JupyterLab to connect to the SageMaker Unified Studio space.
-1. [In JupyterLab] Create a folder named `input_data` under the root folder `/`.
-1. [In JupyterLab] Create a folder named `scripts`.
-1. [In JupyterLab] Upload the csv data-files under the guidance's repository [input_data](source/input_data/).
-1. [In JupyterLab] Upload the scripts under [source/script/data-engineer/](source/script/data-engineer/) to the scripts folder created on step.
+1. [In JupyterLab] Click on `Git` (on Jupiter's menu bar) and then click on `Git Clone Repo`, on the pop-up enter this [repository clone URL](https://github.com/aws-solutions-library-samples/guidance-for-a-unified-development-experience-for-aws-data-analytics-and-machine-learning.git). 
+1. [In JupyterLab] Click on `File Browser` icon on left panel and navigate to folder  `source/scripts/data-engineer`.
+1. [In JupyterLab] Open the notebook `integrated_experience.ipynb`.
 1. [In JupyterLab] Execute the script cell by cell to perform the data transformations using Spark, load the data to Redshift tables and then join the data using Redshift.
 
 Using the Multi-language, Multi-compute Python kernel available in Amazon SageMaker Unified Studio all these steps can be performed from a single Jupiter Notebook without needing to switch between different Notebook experiences or SQL Editors.
@@ -214,14 +211,16 @@ In the example illustrating this guidance July would be acting as the ML Enginee
 July will use the data prepared and loaded into Data Warehouse (Redshift) to train a forecasting ML model using below steps.
 
 1. [In SageMaker Unified Studio portal] On top level menu bar choose Build -> JupyterLab to connect to the SageMaker Unified Studio space.
-1. [In JupyterLab] Create a folder named `ml-engineer` under `source/script` folder.
-1. [In JupyterLab] Upload the scripts under [source/script/ml-engineer/](source/script/ml-engineer/) to the scripts folder created on step.
+1. [In SageMaker Unified Studio portal] On top level menu bar choose Build -> JupyterLab to connect to the SageMaker Unified Studio space.
+1. [In JupyterLab] Click on `Git` (on Jupiter's menu bar) and then click on `Git Clone Repo`, on the pop-up enter this [repository clone URL](https://github.com/aws-solutions-library-samples/guidance-for-a-unified-development-experience-for-aws-data-analytics-and-machine-learning.git). You can omit this step if you are following the ML Engineer steps on the same JupyterLab session as the Data engineer step.
+1. [In JupyterLab] Click on `File Browser` icon on left panel and navigate to folder  `source/scripts/ml-engineer`.
+1. [In JupyterLab] Open the notebook `sales-automl.ipynb`.
 1. [In JupyterLab] Execute the script cell by cell to load data from Redshift to a DataFrame and train a ML model using Amazon SageMaker AutoML APIs.
-1. [In JupyterLab] Amazon SageMaker Autopilot is used to train the model and generate predictions.
-1. [In JupyterLab] Process starts with customers getting data from Redshift and using for Model training.
-1. [In JupyterLab] Predictions can be generated in two ways: - Batch processing - Real-time Endpoint.
-1. [In JupyterLab] During training: - Multiple time series models run concurrently - Models are combined into a single ensembled model - Ensemble blending minimizes forecast error.
-1. [In JupyterLab] Customers receive: - Metadata  - Ensemble model - All underlying candidate models.
+1. [In JupyterLab] Amazon SageMaker Autopilot is used to train the model and generate predictions
+1. [In JupyterLab] Process starts with customers getting data from Redshift and using for Model training
+1. [In JupyterLab] Predictions can be generated in two ways: - Batch processing - Real-time endpoint
+1. [In JupyterLab] During training: - Multiple time series models run concurrently - Models are combined into a single ensemble model - Ensemble blending minimizes forecast error 
+1. [In JupyterLab] Customers receive: - Metadata  - Ensemble model - All underlying candidate models
 
 
 
