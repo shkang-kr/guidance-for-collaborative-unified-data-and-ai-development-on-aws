@@ -104,6 +104,15 @@ Only the following regions are supported for this guidance:
 * eu-west-1
 * us-east-1
 * us-west-2
+* us-east-2
+* eu-central-1
+* sa-east-1
+* ap-northeast-2
+* eu-west-2
+* ap-northeast-1
+* ap-southeast-1
+* ap-southeast-2
+* ca-central-1
 
 Deploying the guidance in other regions may lead to errors or inconsistent behavior.
 
@@ -139,36 +148,24 @@ For this task the Administrator **user must (at least)** have access to both the
 This user will be responsible to perform the following configuration steps:
 
 1. Deploy the cloudformation `sagemaker_us_guidance_network_setup` template under [deployment folder](deployment/sagemaker_us_guidance_network_setup.yaml) of this guidance, this template creates the necessary VPC resources (subnets, Internet Gateways, routing tables, etc...) that allow SageMaker Unified Studio to operate with AWS services and resources.
-1. [Enable IAM Identity Center](https://us-east-1.console.aws.amazon.com/singlesignon/home?region=us-east-1) in the region you want to use for SageMaker Unified Studio (this guidance will use us-east-1 as example). If you already have IAM IC configured you can skip this step.
+1. [Enable IAM Identity Center](https://us-east-2.console.aws.amazon.com/datazone/home?region=us-east-2#/) in the region you want to use for SageMaker Unified Studio (this guidance will use us-east-1 as example). If you already have IAM IC configured you can skip this step.
 1. Add users (and groups if needed) that will be accessing SageMaker Unified Studio portal experience
-1. Access to the [DataZone console](https://us-east-1.awsc-integ.aws.amazon.com/datazone/home?region=us-east-1#/createv2) and create a domain. If you have enabled IAM Identity Center in the previous step you will be able to use `Quick Setup` option with simplifies configuration.
-1. Expand the `Quick setup details` on the bottom of the screen and select the following IAM roles for each of the configuration options, these should be already selected for you, note that role names _might be slightly different_ from the ones listed below:
-
-|Section|Configuration option|IAM Role to Select|
-|--------------------|--------------------|------------------|
-|Domain resources|Domain execution role |MaxDomeDomainExecutionRole|
-|Domain resources|Domain Service role|MaxDomeDomainExecutionRole|
-|Data analytics and machine learning resources|Manage access role|MaxDomeManageAccessRole|
-|Data analytics and machine learning resources|Provisioning role|MaxDomeProvisioningRole|
-|Generative AI resources|Model provisioning role|MaxDomeBedrockModelManagementRole|
-|Generative AI resources|Model consumption role|MaxDomeBedrockModelConsumptionRoleOneForAll|
-
-6. (Optional) Only if you had any problems filling the roles on the earlier step you can deploy in CloudFormation the template [optional_sagemaker_us_guidance_IAM_roles_setup](deployment/optional_sagemaker_us_guidance_IAM_roles_setup.yaml) under the deployment folder of this guidance and retry the step, the all the roles as outlined in the table above should be present now.
-6. On `Virtual private cloud (VPC)` section select **SageMakerUnifiedStudioVPC**, this is the VPC we have deployed with CloudFormation on [the deployment steps](#deployment-steps). When selecting the subnets just select the **private subnets** the aforementioned VPC has across your AZ's.
-6. Once this information is complete click on the `Continue` button
-6. On the next screen input one of the email addresses of the users you have created on step 3. This will be actually the first user of the domain you are about to create and will be added as an owner for the domain with full permissions over it.
-6. Click on `Create domain` and wait for completion (typically ~5 minutes).
-6. (optional) Once the domain is created select it from the list of available domains and click on the recently created domain, under the `User management` tab add the users you want to be able to access the SageMaker Unified Studio portal of this domain.
-6. (optional) Under the `Application` tab click on `Actions -> Add`  to add Q Developer pro support on the JupyterLab experience for your domain ([charges apply](https://aws.amazon.com/q/developer/pricing/)). Also if you want you can edit after adding the connection to change it to the Free tier to avoid costs.
-6. Under the `Project profiles` tab click on **Data Analytics and AI-ML Model Development** and then under the `Blueprint deployment settings` tab select **SageMaker Unified Studio RedshiftServerless** blueprint and click on `Edit`.
-6. Select the `redshiftBaseCapacity` blueprint parameter and edit it order to change its value to 8. This change will set the RS serverless base capacity to 8 [RPUs](https://docs.aws.amazon.com/redshift/latest/mgmt/serverless-capacity.html) for all SageMaker Unified Studio projects allowing you to save on costs.
-6. Now you are ready to click on the `Open data portal` button at the top right corner of the page to access the SageMaker Unified Studio portal experience and continue with the [Data engineer](#data-engineer) steps.
-6. You will be redirected to the `Project list` section, create click on `Create Project` button and name it `SalesForecastingProject`. For the Project Profile select `Data Analytics and Al-ML Model Development` and click on `Continue`.
-6. On the second step of the project creation enter a unique name for the `SageMaker Unified Studio LakeHouse Catalog`, for example *sales-forecasting-catalog* (make sure you are lowercase letters, numbers, underscores and hyphens for the value of this field).
-6. Wait for the project to complete (this could take several minutes).
-6. Once the project is created you should be redirected to the project overview page. Now click on the `Members` section you have on the left menu and add the IAM Identity Center users you have created for your Data Engineer and ML Engineer personas (you can omit this step if you want to run all the guidance with the same IAM IC user).
-6. At the top center of the page you will find the _Project_ collapsible menu, expand the menu, select the `Compute` section and under the `Data Warehouse` tab make sure a *Redshift Serverless* compute is provisioned. You can provision more compute resources if needed for your project users at a later time.
-6. Now you are ready to hand over the portal URL to your Data Engineer and ML Engineer to start working on the `SalesForecastingProject`.
+1. Access to the [DataZone console](https://us-east-1.console.aws.amazon.com/datazone/home?region=us-east-1#/createv2) and create a domain. If you have enabled IAM Identity Center in the previous step you will be able to use `Quick Setup` option with simplifies configuration.
+1. Expand the `Quick setup details` on the bottom of the screen and scroll down to `Virtual private cloud (VPC)` section select **SageMakerUnifiedStudioVPC**, this is the VPC we have deployed with CloudFormation on [the deployment steps](#deployment-steps). When selecting the subnets just select the **private subnets** the aforementioned VPC has across your AZ's.
+1. Once this information is complete click on the `Continue` button
+1. On the next screen input one of the email addresses of the users you have created on step 3. This will be actually the first user of the domain you are about to create and will be added as an owner for the domain with full permissions over it.
+1. Click on `Create domain` and wait for completion (typically ~5 minutes).
+1. (optional) Once the domain is created select it from the list of available domains and click on the recently created domain, under the `User management` tab add the users you want to be able to access the SageMaker Unified Studio portal of this domain.
+1. (optional) Under the `Application` tab click on `Actions -> Add`  to add Q Developer pro support on the JupyterLab experience for your domain ([charges apply](https://aws.amazon.com/q/developer/pricing/)). Also if you want you can edit after adding the connection to change it to the Free tier to avoid costs.
+1. Under the `Project profiles` tab click on **Data Analytics and AI-ML Model Development** and then under the `Blueprint deployment settings` tab select **SageMaker Unified Studio RedshiftServerless** blueprint and click on `Edit`.
+1. Select the `redshiftBaseCapacity` blueprint parameter and edit it order to change its value to 8. This change will set the RS serverless base capacity to 8 [RPUs](https://docs.aws.amazon.com/redshift/latest/mgmt/serverless-capacity.html) for all SageMaker Unified Studio projects allowing you to save on costs.
+1. Now you are ready to click on the `Open data portal` button at the top right corner of the page to access the SageMaker Unified Studio portal experience and continue with the [Data engineer](#data-engineer) steps.
+1. You will be redirected to the `Project list` section, create click on `Create Project` button and name it `SalesForecastingProject`. For the Project Profile select `Data Analytics and Al-ML Model Development` and click on `Continue`.
+1. On the second step of the project creation enter a unique name for the `SageMaker Unified Studio LakeHouse Catalog`, for example *sales-forecasting-catalog* (make sure you are lowercase letters, numbers, underscores and hyphens for the value of this field).
+1. Wait for the project to complete (this could take several minutes).
+1. Once the project is created you should be redirected to the project overview page. Now click on the `Members` section you have on the left menu and add the IAM Identity Center users you have created for your Data Engineer and ML Engineer personas (you can omit this step if you want to run all the guidance with the same IAM IC user).
+1. At the top center of the page you will find the _Project_ collapsible menu, expand the menu, select the `Compute` section and under the `Data Warehouse` tab make sure a *Redshift Serverless* compute is provisioned. You can provision more compute resources if needed for your project users at a later time.
+1. Now you are ready to hand over the portal URL to your Data Engineer and ML Engineer to start working on the `SalesForecastingProject`.
 
 ### Data Engineer
 
