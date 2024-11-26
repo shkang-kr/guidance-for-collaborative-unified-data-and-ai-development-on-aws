@@ -262,4 +262,9 @@ Once API or Cloudformation support is added we will update this guidance accordi
 
 ## Authors
 
-Name of code contributors
+* Judith Joseph
+* Debaprasun Chakraborty
+* Suheel Farooq
+* Ravi Avula
+* Saurabh Bhutyani
+* Raghu Prabhu
