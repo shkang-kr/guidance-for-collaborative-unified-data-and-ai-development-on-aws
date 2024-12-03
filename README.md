@@ -1,4 +1,4 @@
-# Guidance for a Unified Development Experience for AWS Data, Analytics, and Machine Learning with Amazon Amazon SageMaker Unified Studio
+# Guidance for Collaborative Unified Data and AI Development on AWS
 
 ## Table of Contents
 
