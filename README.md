@@ -64,7 +64,7 @@ Find below a high-level diagram of the how different users interact with SageMak
 
 ### Cost
 
-_You are responsible for the cost of the AWS services used while running this Guidance. As of <month> <year>, the cost for running this Guidance with the default settings in the <US East (N. Virginia)> is approximately $2.000 per month assuming that provisioned/serverless capacity is running 4 hours a day with months with 22 working days (this is 4hrs x 22 days)._
+_You are responsible for the cost of the AWS services used while running this Guidance. As of <month> <year>, the cost for running this Guidance with the default settings in the <US East (N. Virginia)> is approximately $2,000 per month assuming that provisioned/serverless capacity is running 4 hours a day with months with 22 working days (this is 4hrs x 22 days)._
 
 Below you can find a  cost breakdown for this estimate  based on the resources this guidance runs and assuming the aforementioned working periods (22 days a month with 4 hours per day).
 
