@@ -63,6 +63,8 @@ A domain is an organizing entity created by an administrator user. Then administ
 
 #### Project
 
+프로젝트는 사용자가 비즈니스 사용 사례에 대해 협업할 수 있는 도메인 내의 경계입니다. 이 특정 가이드의 경우, 프로젝트에 할당된 다양한 사용자는 판매를 예측하기 위한 ML 모델 생성에 협력할 것입니다. 프로젝트 내에서 사용자는 데이터, 컴퓨팅 및 기타 리소스를 생성하고 공유할 수 있습니다. 사용자가 프로젝트에 추가되면 기계 학습 모델을 생성하고 배포하기 위한 리소스와 같이 해당 프로젝트 내의 관련 파일과 도구에 액세스할 수 있습니다. 그들은 프로젝트를 위한 새로운 파일과 리소스를 생성하고, 기존 리소스를 관리하며, 동일한 프로젝트에 있는 다른 사용자와 작업을 공유하고, 다른 사용자를 프로젝트에 추가할 수 있습니다.
+
 A project is a boundary within a domain where users can collaborate on a business use case, for this particular guidance, the different users assigned to the project will be working on creating ML model to forecast sales. Within projects, users can create and share data, computing, and other resources. When a user is added to a project, they gain access to relevant files and tools within that project, such as resources to create and deploy machine learning models. They can create new files and resources for the project, manage existing resources, share work with other users on the same project, and add other users to the project
 
 Find below a high-level diagram of the how different users interact with SageMaker Unified Studio:
