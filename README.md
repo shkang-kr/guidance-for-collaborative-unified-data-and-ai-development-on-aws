@@ -18,6 +18,10 @@
 
 ## Overview
 
+이 가이드는 데이터 수집, 데이터 분석, 그리고 이 데이터를 사용하여 AWS 서비스를 통해 인공지능(AI) 모델을 생성하는 등 데이터 및 AI 모델 개발 라이프사이클과 관련된 다양한 작업에 대해 두 가지 다른 사용자 역할(사용자 페르소나)이 단일 환경 내에서 협업하는 사용 사례를 보여줍니다.
+
+이 두 사용자 페르소나는 Amazon SageMaker Unified Studio를 사용하여 협업할 것입니다. Amazon SageMaker Unified Studio는 AWS 데이터, 분석, 인공지능(AI), 기계 학습(ML) 서비스를 하나로 통합하는 통합 개발 환경입니다. 이는 단일 인터페이스에서 엔드-투-엔드 워크플로우를 구축, 배포, 실행 및 모니터링할 수 있는 공간을 제공합니다.
+
 This guidance illustrates a use case where two different user roles (user personas) collaborate on different tasks related to the Data and AI model development lifecycle which includes data ingestion, data analytics, and further use of that data to create an artificial intelligence (AI) model using AWS services all within one single environment.
 
 This two user personas will be collaborating using Amazon SageMaker Unified Studio. Amazon SageMaker Unified Studio is a unified development experience that brings together AWS data, analytics, artificial intelligence (AI), and machine  learning (ML) services. It provides a place to build, deploy, execute, and monitor end-to-end workflows from a single interface.
@@ -31,6 +35,8 @@ In SageMaker Unified Studio there are two different types of users, administrato
 These users have access to the SageMaker Unified Studio console which is available via the AWS console to create organizing entities called domains and manage user access to those domains. Administrators can also review what tools and services are set up for use within those domains. By providing access to a domain, you provide access to multiple tools at once and facilitate user auditing and collaboration.
 
 #### Users
+
+이들은 비즈니스 사용 사례를 위해 SageMaker Unified Studio의 개발 경험을 사용할 최종 사용자입니다. 이 가이드 사용 사례를 위해 두 명의 서로 다른 사용자(Data Engineer와 ML Engineer)의 흐름을 구현할 것입니다. 그들은 도메인 내의 도구 통합을 사용하여 판매 예측을 위한 ML 모델을 생성할 것입니다. 우리는 각 사용자의 책임, 작업 및 SageMaker Unified Studio 콘솔과 상호 작용하는 방법을 자세히 설명할 것입니다.
 
 These are the end users that will use SageMaker Unified Studio's development experience to work on business use cases, for this guidance use case. We will implement the flow of two different users (Data Engineer and ML Engineer). They will use the tool integrations in a domain to create a ML model for sales forecasting. We will detail each user responsibilities, tasks and how they will be interacting with SageMaker Unified Studio console.
 
@@ -48,6 +54,7 @@ The Amazon SageMaker Unified Studio portal is a workspace console that users acc
 
 ### Organizational entities in SageMaker Unified Studio
 
+위의 모든 것 외에도 Amazon SageMaker Unified Studio는 자산을 위한 두 가지 추가 조직 엔터티인 도메인과 프로젝트를 제공합니다.
 In addition to all of the above, Amazon SageMaker Unified Studio provides two additional organizational entities for assets, the domains and projects.
 
 #### Domain
